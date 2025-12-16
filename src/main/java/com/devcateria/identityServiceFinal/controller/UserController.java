@@ -1,5 +1,6 @@
 package com.devcateria.identityServiceFinal.controller;
 
+import com.devcateria.identityServiceFinal.dto.request.ApiResponse;
 import com.devcateria.identityServiceFinal.dto.request.UserCreationRequest;
 import com.devcateria.identityServiceFinal.dto.request.UserUpdateRequest;
 import com.devcateria.identityServiceFinal.entity.User;
@@ -18,8 +19,10 @@ public class UserController {
     private UserService userService;
 
     @PostMapping
-    User createUser(@RequestBody @Valid UserCreationRequest request) {
-        return userService.createUser(request);
+    ApiResponse<User> createUser(@RequestBody @Valid UserCreationRequest request) {
+        ApiResponse<User> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(userService.createUser(request));
+        return apiResponse ;
     }
 
     @GetMapping

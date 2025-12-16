@@ -3,6 +3,8 @@ package com.devcateria.identityServiceFinal.service;
 import com.devcateria.identityServiceFinal.dto.request.UserCreationRequest;
 import com.devcateria.identityServiceFinal.dto.request.UserUpdateRequest;
 import com.devcateria.identityServiceFinal.entity.User;
+import com.devcateria.identityServiceFinal.exception.AppExeption;
+import com.devcateria.identityServiceFinal.exception.ErrorCode;
 import com.devcateria.identityServiceFinal.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,7 @@ public class UserService {
         User user = new User();
 
         if(userRepository.existsByUsername(request.getUsername()))
-            throw new RuntimeException("Username existed");
+            throw new AppExeption(ErrorCode.USER_EXISTED);
 
         user.setUsername(request.getUsername());
         user.setPassword(request.getPassword());
