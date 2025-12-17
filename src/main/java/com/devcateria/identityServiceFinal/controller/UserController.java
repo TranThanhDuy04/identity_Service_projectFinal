@@ -1,6 +1,6 @@
 package com.devcateria.identityServiceFinal.controller;
 
-import com.devcateria.identityServiceFinal.dto.request.ApiResponse;
+import com.devcateria.identityServiceFinal.dto.response.ApiResponse;
 import com.devcateria.identityServiceFinal.dto.request.UserCreationRequest;
 import com.devcateria.identityServiceFinal.dto.request.UserUpdateRequest;
 import com.devcateria.identityServiceFinal.dto.response.UserResponse;

@@ -1,6 +1,6 @@
 package com.devcateria.identityServiceFinal.exception;
 
-import com.devcateria.identityServiceFinal.dto.request.ApiResponse;
+import com.devcateria.identityServiceFinal.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
