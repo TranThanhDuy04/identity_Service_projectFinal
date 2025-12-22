@@ -12,7 +12,10 @@ import com.devcateria.identityServiceFinal.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +25,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class UserService {
      UserRepository userRepository;
      UserMapper userMapper;
@@ -41,6 +45,18 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
+    public UserResponse getMyinfo(){
+        var context = SecurityContextHolder.getContext();
+
+        String name = context.getAuthentication().getName();
+
+        User user = userRepository.findByUsername(name)
+                .orElseThrow(() -> new AppExeption(ErrorCode.USER_NOT_EXISTED));
+        return userMapper.toUserResponse(user);
+    }
+
+
+
     public UserResponse updateUser(String userId, UserUpdateRequest request) {
         User user = userRepository.findById(userId)
                  .orElseThrow(() -> new RuntimeException("User not found"));
@@ -53,14 +69,19 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
+
+    @PreAuthorize("hasRole('ADMIN')")
     public List<UserResponse> getUsers() {
+        log.info("In method get users");
         return userRepository.findAll()
                 .stream()
                 .map(userMapper::toUserResponse)
                 .toList();
     }
 
+    @PostAuthorize("returnObject.username == authentication.name")
     public UserResponse getUser(String id){
+        log.info("In method get user by id");
         return userMapper.toUserResponse(userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found")));
     }
