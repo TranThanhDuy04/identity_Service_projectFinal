@@ -4,6 +4,7 @@ import com.devcateria.identityServiceFinal.dto.request.AuthenticationRequest;
 import com.devcateria.identityServiceFinal.dto.request.IntroSpectRequest;
 import com.devcateria.identityServiceFinal.dto.response.AuthenticationResponse;
 import com.devcateria.identityServiceFinal.dto.response.InstroSpecResponse;
+import com.devcateria.identityServiceFinal.entity.User;
 import com.devcateria.identityServiceFinal.exception.AppExeption;
 import com.devcateria.identityServiceFinal.exception.ErrorCode;
 import com.devcateria.identityServiceFinal.repository.UserRepository;
@@ -21,11 +22,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.StringJoiner;
 
 
 @Service
@@ -70,7 +73,7 @@ public class AuthenticationService {
         if(!authenticated)
             throw new AppExeption(ErrorCode.UNAUTHENTICATED);
 
-        var token = generateToken(request.getUsername());
+        var token = generateToken(user);
 
         return AuthenticationResponse.builder()
                 .token(token)
@@ -78,17 +81,17 @@ public class AuthenticationService {
                 .build();
     }
 
-    private String generateToken(String username) throws KeyLengthException {
+    private String generateToken(User user) throws KeyLengthException {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-                .subject(username)
+                .subject(user.getUsername())
                 .issuer("devcateria.com")
                 .issueTime(new Date())
                 .expirationTime(new Date(
                         Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()
                 ))
-                .claim("customClaim","custom")
+                .claim("scope",buildScope(user))
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject());
@@ -103,5 +106,12 @@ public class AuthenticationService {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private String buildScope(User user) {
+        StringJoiner stringJoiner = new StringJoiner(" ");
+        if(!CollectionUtils.isEmpty(user.getRoles()))
+            user.getRoles().forEach(stringJoiner::add);
+        return stringJoiner.toString();
     }
 }
