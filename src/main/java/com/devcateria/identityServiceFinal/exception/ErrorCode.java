@@ -14,6 +14,7 @@ public enum ErrorCode {
     USER_NOT_EXISTED(1005,"User Not Existed", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED(1006,"Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007,"You dont have permission", HttpStatus.FORBIDDEN),
+    INVALID_DOB(1008,"Invalid date of birth", HttpStatus.BAD_REQUEST),
 
 
 
