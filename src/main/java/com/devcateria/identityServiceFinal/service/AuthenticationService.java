@@ -48,13 +48,21 @@ public class AuthenticationService {
     @Value("${jwt.signerKey}")
     protected String SIGNER_KEY;
 
+    @NonFinal
+    @Value("${jwt.valid-duration}")
+    protected long VALIDATION_DURATION;
+
+    @NonFinal
+    @Value("${jwt.refreshable-duration}")
+    protected long REFRESHABLE_DURATION;
+
 
 
     public InstroSpecResponse instrospect(IntroSpectRequest request) throws JOSEException, ParseException {
         var token = request.getToken();
         boolean isValid = true;
         try{
-            verifyToken(token);
+            verifyToken(token, false);
         } catch (AppExeption e) {
             isValid = false;
         }
@@ -85,22 +93,28 @@ public class AuthenticationService {
 
 
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
-        var signToken = verifyToken(request.getToken());
 
-        String jit = signToken.getJWTClaimsSet().getJWTID();
-        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+        try{
+            var signToken = verifyToken(request.getToken(), true);
 
-        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .id(jit)
-                .expiryTime(expiryTime)
-                .build();
+            String jit = signToken.getJWTClaimsSet().getJWTID();
+            Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
 
-        invalidatedRepository.save(invalidatedToken);
+            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                    .id(jit)
+                    .expiryTime(expiryTime)
+                    .build();
+
+            invalidatedRepository.save(invalidatedToken);
+        } catch(AppExeption e) {
+            log.info("Token already expired");
+        }
+
 
     }
 
     public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException {
-        var signedJWT = verifyToken(request.getToken());
+        var signedJWT = verifyToken(request.getToken(), true);
 
         var jit = signedJWT.getJWTClaimsSet().getJWTID();
         var expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
@@ -123,25 +137,28 @@ public class AuthenticationService {
                 .build();
     }
 
-    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+    private SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {
 
 
         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
 
-        SignedJWT jwt = SignedJWT.parse(token);
+        SignedJWT signedJWT = SignedJWT.parse(token);
 
-        Date expityTime = jwt.getJWTClaimsSet().getExpirationTime();
+        Date expityTime = (isRefresh)
+                ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()
+                    .toInstant().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS).toEpochMilli())
+                : signedJWT.getJWTClaimsSet().getExpirationTime();
 
-        var verified = jwt.verify(verifier);
+        var verified = signedJWT.verify(verifier);
 
         if(!(verified && expityTime.after(new Date())))
             throw new AppExeption(ErrorCode.UNAUTHENTICATED);
 
-        if(invalidatedRepository.existsById(jwt.getJWTClaimsSet().getJWTID()))
+        if(invalidatedRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppExeption(ErrorCode.UNAUTHENTICATED);
 
 
-        return  jwt;
+        return  signedJWT;
     }
     private String generateToken(User user) throws KeyLengthException {
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);
@@ -151,7 +168,7 @@ public class AuthenticationService {
                 .issuer("devcateria.com")
                 .issueTime(new Date())
                 .expirationTime(new Date(
-                        Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli()
+                        Instant.now().plus(VALIDATION_DURATION, ChronoUnit.SECONDS).toEpochMilli()
                 ))
 
                 .jwtID(UUID.randomUUID().toString())
