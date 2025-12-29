@@ -2,6 +2,7 @@ package com.devcateria.identityServiceFinal.controller;
 
 import com.devcateria.identityServiceFinal.dto.request.IntroSpectRequest;
 import com.devcateria.identityServiceFinal.dto.request.LogoutRequest;
+import com.devcateria.identityServiceFinal.dto.request.RefreshRequest;
 import com.devcateria.identityServiceFinal.dto.response.ApiResponse;
 import com.devcateria.identityServiceFinal.dto.request.AuthenticationRequest;
 import com.devcateria.identityServiceFinal.dto.response.AuthenticationResponse;
@@ -49,6 +50,14 @@ public class AuthenticationController {
     ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
         authenticationService.logout(request);
         return ApiResponse.<Void>builder()
+                .build();
+    }
+
+    @PostMapping("/refresh")
+    ApiResponse<AuthenticationResponse> authenticate(@RequestBody RefreshRequest request) throws JOSEException, ParseException {
+        var result = authenticationService.refreshToken(request);
+        return ApiResponse.<AuthenticationResponse>builder()
+                .result(result)
                 .build();
     }
 

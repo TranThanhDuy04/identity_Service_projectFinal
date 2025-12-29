@@ -3,6 +3,7 @@ package com.devcateria.identityServiceFinal.service;
 import com.devcateria.identityServiceFinal.dto.request.AuthenticationRequest;
 import com.devcateria.identityServiceFinal.dto.request.IntroSpectRequest;
 import com.devcateria.identityServiceFinal.dto.request.LogoutRequest;
+import com.devcateria.identityServiceFinal.dto.request.RefreshRequest;
 import com.devcateria.identityServiceFinal.dto.response.AuthenticationResponse;
 import com.devcateria.identityServiceFinal.dto.response.InstroSpecResponse;
 import com.devcateria.identityServiceFinal.entity.InvalidatedToken;
@@ -96,6 +97,30 @@ public class AuthenticationService {
 
         invalidatedRepository.save(invalidatedToken);
 
+    }
+
+    public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException {
+        var signedJWT = verifyToken(request.getToken());
+
+        var jit = signedJWT.getJWTClaimsSet().getJWTID();
+        var expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jit)
+                .expiryTime(expiryTime)
+                .build();
+
+        invalidatedRepository.save(invalidatedToken);
+
+        var username = signedJWT.getJWTClaimsSet().getSubject();
+        var user = userRepository.findByUsername(username).orElseThrow(() -> new AppExeption(ErrorCode.UNAUTHENTICATED));
+
+        var token = generateToken(user);
+
+        return AuthenticationResponse.builder()
+                .token(token)
+                .Authenticated(true)
+                .build();
     }
 
     private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
